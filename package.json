@@ -1,0 +1,19 @@
+{
+  "name": "tefps",
+  "version": "1.0.0",
+  "description": "Create your tree pattern in browser in order to create pattern for search in trees database.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "bioinformatics;pattern",
+    "search;",
+    "phylogenetic;"
+  ],
+  "author": "gouayave <guillaume.gence@gmail.com>",
+  "license": "ISC",
+  "dependencies": {
+    "d3": "^4.4.2"
+  }
+}
