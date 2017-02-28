@@ -1,12 +1,12 @@
 //View//
 //Config
-var width = 960,
-    height = 500,
+var width = 750,
+    height = 550,
     margin = {
-      top : 50,
-      bottom : 50,
-      rigth : 20,
-      left : 50
+      top : 0,
+      bottom : 120,
+      rigth : 0,
+      left : 40
     },
     depth = 100;
 
@@ -92,9 +92,8 @@ var events =
 
 
 //Instance element
-var svg = d3.select("body")
+var svg = d3.select(".svg")
     .append("svg:svg")
-    .style("border","1px solid black")
     .attr("width", width)
     .attr("height", height)
     .attr("pointer-events", "all")
@@ -115,8 +114,8 @@ var treePatternRoot = { nodeEvent : events[0] };
 
 //Instance and configure layout computer
 var treeComputer =
-  d3.tree()
-  .size([(width - margin.rigth -margin.left), (height - margin.top - margin.bottom)]);
+  d3.cluster()
+  .size([(height - margin.rigth -margin.left), (width - margin.top - margin.bottom)]);
 
 function computeAndDraw() {
 
@@ -124,10 +123,12 @@ function computeAndDraw() {
   var nodeRootHierarchy = d3.hierarchy(treePatternRoot);
   treeComputer(nodeRootHierarchy);
 
+
   allLinks = nodeRootHierarchy.links();
   allConstraints = allLinks.filter(function (d) {
     return d.target.data.linkEvent.rights !== "Allow";
   });
+
 
   //Bind data with element (nodes and links)
   nodes = gnodes.selectAll(".node")
@@ -147,9 +148,8 @@ function computeAndDraw() {
     .transition()
     .attr("d",function (d) {
       var path = d3.path();
-      path.moveTo(d.source.x,d.source.depth * depth);
-      path.lineTo(d.target.x,d.target.depth * depth);
-      path.closePath();
+      path.moveTo(d.source.y,d.source.x);
+      path.quadraticCurveTo(d.source.y , d.target.x, d.target.y, d.target.x)
       return path.toString();
     });
 
@@ -157,11 +157,13 @@ function computeAndDraw() {
     .enter()
     .append("path")
     .classed("link",true)
+    .style("fill","none")
+    .style("stroke","black")
+    .style("stroke-width","8px")
     .attr("d",function (d) {
       var path = d3.path();
-      path.moveTo(d.source.x,d.source.depth * depth);
-      path.lineTo(d.target.x,d.target.depth * depth);
-      path.closePath();
+      path.moveTo(d.source.y,d.source.x);
+      path.quadraticCurveTo(d.source.y , d.target.x, d.target.y, d.target.x)
       return path.toString();
     })
     .on("click",function (d) {
@@ -175,12 +177,11 @@ function computeAndDraw() {
   constraints
     .attr("transform",function(d) {
       var x = d.source.x + ((d.target.x - d.source.x) /2)
-      var y =(d.source.depth * depth) + (((d.target.depth * depth) - (d.source.depth * depth)) / 2 )
-      return "translate("+x+","+y+")";
+      var y =(d.source.y) + (((d.target.y) - (d.source.y)) / 2 )
+      return "translate("+y+","+x+")";
     });
 
   constraints.select("path")
-    .transition()
     .style("stroke",function (d) {
       return d.target.data.linkEvent.stroke;
     })
@@ -192,7 +193,6 @@ function computeAndDraw() {
     });
 
   constraints.select("text")
-    .transition()
     .style("fill",function (d) {
       return d.target.data.linkEvent.textfill;
     })
@@ -207,8 +207,8 @@ function computeAndDraw() {
     .classed("constraint",true)
     .attr("transform",function(d) {
       var x = d.source.x + ((d.target.x - d.source.x) /2)
-      var y =(d.source.depth * depth) + (((d.target.depth * depth) - (d.source.depth * depth)) / 2 )
-      return "translate("+x+","+y+")";
+      var y =(d.source.y) + (((d.target.y) - (d.source.y)) / 2 )
+      return "translate("+y+","+x+")";
     })
     .on("click",function (d) {
       window.event.cancelBubble = true;
@@ -250,8 +250,8 @@ function computeAndDraw() {
     .classed("node",true)
     .attr("transform",function(d) {
       var x = d.x;
-      var y = d.depth * depth;
-      return "translate("+x+","+y+")";
+      var y = d.y;
+      return "translate("+y+","+x+")";
     })
     .on("click",function (d) {
       if (window.event.ctrlKey) {
@@ -288,8 +288,8 @@ function computeAndDraw() {
   .transition()
   .attr("transform",function(d) {
     var x = d.x;
-    var y = d.depth * depth;
-    return "translate("+x+","+y+")";
+    var y = d.y
+    return "translate("+y+","+x+")";
   })
 
   nodes
@@ -314,6 +314,7 @@ function computeAndDraw() {
   .text(function (d) {
       return d.data.nodeEvent.letter;
   });
+
 
 }
 computeAndDraw();
