@@ -26,31 +26,27 @@ body {
 }
 
 .container {
-  max-width: 960px;
+  width: 960px;
   padding: 0px;
 }
 
 /* Main marketing message and sign up button */
 #pattern {
-  height: 600px;
+  min-height: 600px;
   text-align: center;
   border: 2px solid black;
   background-color: inherit;
 }
 
+
 #detail{
-  height: 600px;
+  min-height: 600px;
   border-left-style: dotted;
   border-left-width: 1px;
 }
+#tree{
+  margin-left: 10px;
+}
 #info{
   padding-right: 10px;
-}
-
-
-.btn-default {
-    border: 0px;
-    color: #333;
-    background-color: #fff;
-    border-color: #fff;
 }

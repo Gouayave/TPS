@@ -8,7 +8,7 @@
     <meta name="description" content="Tree pattern search for genes tree">
     <meta name="author" content="">
 
-    <title>Narrow Jumbotron Template for Bootstrap</title>
+    <title>TPS</title>
 
     <!-- Bootstrap core CSS -->
     <link href="./bootstrap/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -49,12 +49,11 @@
         <h3 class="text-muted">Tree Pattern Search in <b>
           <span class="dropdown">
           <button class="btn-group-lg btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-            HOGENOM
+            DATABASE
             <span class="caret"></span>
           </button>
           <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
-            <li><a href="#"><b>HOGENOM</b></a></li>
-            <li><a href="#"><b>PROASELLES</b></a></li>
+            <li><a href="#"><b>DATABASE</b></a></li>
           </ul>
         </span>
       </b> </h3>
@@ -65,35 +64,69 @@
           <div class="col-xs-9">
             <div class="svg">
 
+            </div>
           </div>
-        </div>
-        <div class="col-xs-3" id="detail">
+
+          <div class="col-xs-3" id="detail">
           <div id="info">
             <p>
-              <div class="form-group">
-                <label for="inputdefault">Taxon</label>
-                <input class="form-control" id="inputdefault" type="text" placeholder="Homo sapiens">
+              <div class="btn-group btn-group-justified">
+                <a href="#" onClick="changeEvent()" class="btn btn-default" aria-hidden="true">Change event</a>
               </div>
             </p>
             <p>
               <div class="btn-group btn-group-justified">
-                <a href="#" class="btn btn-success"> <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span></a>
-                <a href="#" class="btn btn-danger"> <span class="glyphicon glyphicon-minus-sign" aria-hidden="true"></span></a>
+                <a href="#" onClick="changeLinkEvent()" class="btn btn-default" aria-hidden="true">Constraint on link</a>
               </div>
             </p>
             <p>
-              <div class="list-group">
-                <a href="#" class="list-group-item list-group-item-action list-group-item-success">Dapibus ac facilisis in  <span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a>
-                <a href="#" class="list-group-item list-group-item-action list-group-item-success">Dapibus ac facilisis in  <span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a>
-                <a href="#" class="list-group-item list-group-item-action list-group-item-danger">Vestibulum at eros <span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a>
+              <div class="btn-group btn-group-justified">
+                <a href="#" onClick="addChildren()" class="btn btn-default" aria-hidden="true">Add children</a>
+              </div>
+            </p>
+            <p>
+              <div class="btn-group btn-group-justified">
+                <a href="#" onClick="removeChildren()" class="btn btn-default" aria-hidden="true">Remove children</a>
+              </div>
+            </p>
+            <br>
+            <p>
+              <label for="inputdefault">Cardinality</label>
+                <div class="form-group">
+                        <div class="form-group row">
+                            <div class="col-xs-6">
+                                <label for="">min</label>
+                                <input type="number" class="form-control" id="minCardinality" onchange="addCardinalityMin()" min="0">
+                            </div>
+                            <div class="col-xs-6">
+                              <label for="">max</label>
+                              <input type="number" class="form-control" id="maxCardinality" onchange="addCardinalityMax()" min="0">
+                            </div>
+                        </div>
+                </div>
+            </p>
+            <br>
+            <p>
+              <div class="form-group">
+                <label for="inputdefault">Taxon</label>
+                <input id="taxon" class="form-control" id="inputdefault" type="text" placeholder="">
+              </div>
+            </p>
+
+            <p>
+              <div class="btn-group btn-group-justified">
+                <a onclick="addAllowTaxonInFocus()" href="#" class="btn btn-default"> <span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span></a>
+                <a onclick="addForbidTaxonInFocus()" href="#" class="btn btn-default"> <span class="glyphicon glyphicon-minus-sign" aria-hidden="true"></span></a>
+              </div>
+            </p>
+            <p>
+              <div class="list-group" id="listTaxon">
+                <!-- <a href="#" class="list-group-item list-group-item-action list-group-item-success">Dapibus ac facilisis in  <span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a>
+                <a href="#" class="list-group-item list-group-item-action list-group-item-danger">Vestibulum at eros <span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a> -->
               </div>
             </p>
           </div>
         </div>
-
-
-
-
         </div>
       </div>
 
@@ -109,6 +142,599 @@
     <script src="./assets/ie10-viewport-bug-workaround.js"></script>
     <!-- Code application -->
     <script src="./node_modules/d3/build/d3.min.js" charset="utf-8"></script>
-    <script src="./index.js" charset="utf-8"></script>
+
+    <script type="text/javascript">
+    //View//
+    //Config
+    var width = 750,
+        height = 550,
+        margin = {
+          top : 0,
+          bottom : 120,
+          rigth : 0,
+          left : 40
+        },
+        depth = 100;
+
+        d3.symbolForbidden =  {
+          draw: function(context, size) {
+              var pi = Math.PI;
+              var r = Math.sqrt(size / pi);
+              context.arc(0, 0, r, 0, 2*pi);
+              context.moveTo(Math.cos((pi)/4) * r, - Math.sin((pi)/4) * r);
+              context.lineTo(Math.cos((5*pi)/4) * r, - Math.sin((5*pi)/4) * r);
+              context.closePath();
+              }
+           }
+
+         var symbolCircle = d3.symbol();
+         symbolCircle.size(512);
+         symbolCircle.type(d3.symbolCircle);
+
+         var symbolForbidden = d3.symbol();
+         symbolForbidden.size(512);
+         symbolForbidden.type(d3.symbolForbidden);
+
+
+      var events =
+      [
+          {
+            id : 0,
+            rights : "Allow",
+            name : "Any",
+            shape : symbolCircle,
+            stroke : "black",
+            fill : "white",
+            textfill : "black",
+            letter : ''
+          }
+      ,
+          {
+            id : 1,
+            rights : "Must",
+            name : "Duplication",
+            shape : symbolCircle,
+            stroke : "white",
+            fill : "#005c99",
+            textfill : "white",
+            letter : 'D'
+          }
+      ,
+          {
+            id : 2,
+            rights : "Forbidden",
+            name : "Duplication",
+            shape : symbolForbidden,
+            stroke : "red",
+            fill : "white",
+            textfill : "black",
+            letter : 'D'
+          }
+      ,
+          {
+            id : 3,
+            rights : "Must",
+            name : "Speciation",
+            shape : symbolCircle,
+            stroke : "white",
+            fill : "#005c99",
+            textfill : "white",
+            letter : 'S'
+          }
+      ,
+          {
+            id : 4,
+            rights : "Forbidden",
+            name : "Speciation",
+            shape : symbolForbidden,
+            stroke : "red",
+            fill : "white",
+            textfill : "black",
+            letter : 'S'
+          }
+      ]
+
+
+    //Instance element
+    var svg = d3.select(".svg")
+        .append("svg:svg")
+        .attr("width", width)
+        .attr("height", height)
+        .attr("pointer-events", "all")
+        .attr("cursor","pointer")
+        .append("svg:g")
+        .attr("transform","translate("+margin.left+","+margin.top+")");
+
+    var glinks =
+       svg.append("svg:g");
+
+    var gnodes =
+        svg.append("svg:g");
+
+    var gconstraints =
+        svg.append("svg:g");
+
+
+    //Data structures
+    var firstNode = {
+      nodeEvent : events[0],
+      linkEvent : events[0],
+      allowedTaxon : [],
+      forbiddenTaxon : []
+    };
+
+    var treePatternRoot = {
+      children : [firstNode]
+    };
+
+    var focusNode = firstNode;
+    focusNode.focus = true;
+    updateDetails();
+
+    //Instance and configure layout computer
+    var treeComputer =
+      d3.cluster()
+      .size([(height - margin.rigth -margin.left), (width - margin.top - margin.bottom)]);
+
+    function computeAndDraw() {
+
+      //Compute hierarchy and position
+      var nodeRootHierarchy = d3.hierarchy(treePatternRoot);
+      treeComputer(nodeRootHierarchy);
+
+
+      var allLinks = nodeRootHierarchy.links();
+      var allConstraints = allLinks.filter(function (d) {
+        return d.target.data.linkEvent.rights !== "Allow";
+      });
+
+      var allNodes = nodeRootHierarchy.children[0].descendants();
+
+      //Bind data with element (nodes and links)
+      var nodes = gnodes.selectAll(".node")
+        .data(allNodes);
+
+      var textDetails = gnodes.selectAll(".textDetails")
+        .data(allNodes);
+
+      var textCardinalies = gnodes.selectAll(".textCardinalies")
+        .data(allNodes);
+
+      var links = glinks.selectAll(".link")
+        .data(allLinks);
+
+      var constraints = gconstraints.selectAll(".constraint")
+        .data(allConstraints);
+
+
+      //LINKS
+      //EXIT
+      links.exit().remove();
+
+      //ENTER + UPDATE
+      links
+        .enter()
+        .append("path")
+        .classed("link",true)
+        .style("fill","none")
+        .style("stroke-width","8px")
+        .merge(links)
+        .style("stroke",function (d) {
+          var stroke = d.target.data.linkEvent.stroke;
+          var fill = d.target.data.linkEvent.fill;
+          if(stroke != "white"){
+            return stroke;
+          }
+          else if(fill != "white"){
+            return fill;
+          }else{
+            return "black";
+          }
+        })
+        .attr("d",function (d) {
+          var path = d3.path();
+          path.moveTo(d.source.y,d.source.x);
+          path.quadraticCurveTo(d.source.y , d.target.x, d.target.y, d.target.x)
+          return path.toString();
+        });
+
+      //Draw nodes
+      //EXIT
+      nodes.exit().remove();
+
+      //ENTER
+      var newNodesGroup =
+      nodes
+        .enter()
+        .append("g")
+        .classed("node",true);
+
+      newNodesGroup
+        .append("path")
+        .attr("class","shape");
+
+      newNodesGroup
+        .append("text")
+        .attr("class","textNode")
+        .style("text-anchor","middle")
+        .style("alignment-baseline","middle");
+
+      //ENTER + UPDATE
+      var nodesGroup =
+      newNodesGroup
+        .merge(nodes)
+        .attr("transform",function(d) {
+          var x = d.x;
+          var y = d.y;
+          return "translate("+y+","+x+")";
+        })
+        .on("click",function (d) {
+          focusOnNode(d);
+        });
+
+      nodesGroup
+        .select(".shape")
+        .attr("d",function (d) {
+          if(d.data.children){
+            return d.data.nodeEvent.shape();
+          }else{
+            return symbolCircle();
+          }
+
+        })
+        .style("stroke-width", function (d) {
+            if(d.data.focus){
+              return "5px"
+            }else{
+              return "2px"
+            }
+        })
+        .style("stroke",function (d) {
+          if(d.data.children){
+            return d.data.nodeEvent.stroke;
+          }else{
+            return "black";
+          }
+
+        })
+        .style("fill",function (d) {
+          if(d.data.children){
+            return d.data.nodeEvent.fill;
+          }
+          else{
+            return "white";
+          }
+        });
+
+      nodesGroup
+        .select(".textNode")
+        .style("fill",function (d) {
+          if(d.data.children){
+            return d.data.nodeEvent.textfill;
+          }
+          else{
+            return "black";
+          }
+        })
+        .text(function (d) {
+          if(d.data.children){
+            return d.data.nodeEvent.letter;
+          }
+          else{
+            return "L";
+          }
+        });
+
+
+      //EXIT
+      textDetails.exit().remove();
+
+      //ENTER
+      var newDetailsTextGroup =
+      textDetails
+        .enter()
+        .append("text")
+        .classed("textDetails",true)
+        .style("text-anchor","end");
+
+
+      //ENTER + UPDATE
+      var allDetailsTextGroup =
+      newDetailsTextGroup
+      .merge(textDetails)
+      .attr("transform",function(d) {
+        var x = d.x + 20;
+        var y = d.y ;
+        return "translate("+y+","+x+")";
+      });
+
+      allDetailsTextGroup.each(function (d) {
+
+        var allowedTaxons = d3.select(this)
+        .selectAll(".allowedTaxon")
+        .data(d.data.allowedTaxon);
+
+        allowedTaxons.exit().remove();
+
+        var forbiddenTaxons = d3.select(this)
+        .selectAll(".forbiddenTaxon")
+        .data(d.data.forbiddenTaxon);
+
+        forbiddenTaxons.exit().remove();
+
+        var enterAllowedTaxons=
+        allowedTaxons
+        .enter()
+        .append("tspan")
+        .attr("fill","green")
+        .attr("class","allowedTaxon");
+
+        enterAllowedTaxons
+        .merge(allowedTaxons)
+        .attr("dy",15)
+        .attr("x",0)
+        .text(function (e) {
+          return e;
+        });
+
+        var enterForbiddenTaxons=
+        forbiddenTaxons
+        .enter()
+        .append("tspan")
+        .attr("class","forbiddenTaxon")
+        .attr("fill","red")
+        .style("text-decoration","line-through")
+
+        enterForbiddenTaxons
+        .merge(forbiddenTaxons)
+        .attr("dy",15)
+        .attr("x",0)
+        .text(function (e) {
+          return e;
+        });
+
+      });
+
+
+      //EXIT
+      textCardinalies.exit().remove();
+
+      //ENTER
+      var newTextCardinalies =
+      textCardinalies
+        .enter()
+        .append("text")
+        .classed("textCardinalies",true)
+        .style("text-anchor","end");
+
+
+      //ENTER + UPDATE
+      var allTextCardinalies =
+      newTextCardinalies
+      .merge(textCardinalies)
+      .attr("transform",function(d) {
+        var x = d.x - 20;
+        var y = d.y - 5;
+        return "translate("+y+","+x+")";
+      })
+      .text(function (d) {
+        var text = "";
+        var minC = d.data.minCardinality;
+        var maxC = d.data.maxCardinality;
+        if(minC){
+          text += minC + " ≤ "
+        }
+        if(minC || maxC){
+          text += "n"
+        }
+        if(maxC){
+          text += " ≤ " + maxC
+        }
+        return text;
+      });
+
+
+
+
+
+      //EXIT
+      constraints.exit().remove();
+
+      //ENTER
+      var newConstraintsGroup =
+        constraints
+        .enter()
+        .append("g")
+        .classed("constraint",true);
+
+      newConstraintsGroup
+        .append("path")
+        .attr("class","pathCstGrp")
+        .style("stroke-width", "2px");
+
+      newConstraintsGroup
+        .append("text")
+        .attr("class","textCstGrp")
+        .style("text-anchor","middle")
+        .style("alignment-baseline","middle");
+
+
+      //ENTER + UPDATE
+      var constraintsGroup =
+        newConstraintsGroup
+        .merge(constraints)
+        .attr("transform",function(d) {
+          var x = d.target.x;
+          var y =(d.source.y) + (((d.target.y) - (d.source.y)) / 2 )
+          return "translate("+y+","+x+")";
+        });
+
+      constraintsGroup.select(".pathCstGrp")
+        .style("stroke",function (d) {
+          return d.target.data.linkEvent.stroke;
+        })
+        .style("fill",function (d) {
+          return d.target.data.linkEvent.fill;
+        })
+        .attr("d",function (d) {
+          return d.target.data.linkEvent.shape();
+        });
+
+      constraintsGroup.select(".textCstGrp")
+        .style("fill",function (d) {
+          return d.target.data.linkEvent.textfill;
+        })
+        .text(function (d) {
+          return d.target.data.linkEvent.letter;
+        });
+
+
+    }
+    computeAndDraw();
+
+    //Add child to treeNode
+    function addChildren () {
+      if(!focusNode.children){
+        focusNode.children = [
+          {
+            nodeEvent : events[0],
+            linkEvent : events[0],
+            allowedTaxon : [],
+            forbiddenTaxon : []
+          },
+          {
+            nodeEvent : events[0],
+            linkEvent : events[0],
+            allowedTaxon : [],
+            forbiddenTaxon : []
+          }
+        ];
+      }
+      computeAndDraw();
+      updateDetails();
+    }
+
+    //Add child to treeNode
+    function removeChildren () {
+      if(focusNode.children){
+        focusNode.children = undefined;
+      }
+      computeAndDraw();
+      updateDetails();
+    }
+
+    //Change node event
+    function changeEvent () {
+      if(focusNode.children){
+        var nodeEvent = focusNode.nodeEvent;
+        newIdEvent = (nodeEvent.id + 1) %  events.length;
+        focusNode.nodeEvent = events[newIdEvent];
+        computeAndDraw();
+      }
+    }
+
+    //Change node forbidden Event
+    function changeLinkEvent () {
+      var linkEvent = focusNode.linkEvent;
+      newIdEvent = (linkEvent.id + 1) %  events.length;
+      focusNode.linkEvent = events[newIdEvent];
+      computeAndDraw();
+    }
+
+    //Add constraint in node
+    function addConstraintInNode (forbidden) {
+
+      var taxon = $('#taxon').val();
+      if(taxon){
+        if(forbidden){
+          focusNode.forbiddenTaxon.push(taxon);
+        }else {
+          focusNode.allowedTaxon.push(taxon);
+        }
+        updateDetails();
+      }
+      var taxon = $('#taxon').val("");
+      computeAndDraw();
+    }
+
+    function updateDetails () {
+      var listTaxonDom = $('#listTaxon');
+      var minCardinality = $('#minCardinality');
+      var maxCardinality = $('#maxCardinality');
+
+      listTaxonDom.empty();
+      minCardinality.val("");
+      maxCardinality.val("");
+
+      if(focusNode.children){
+        minCardinality.prop('disabled', false);
+        maxCardinality.prop('disabled', false);
+      }else{
+        focusNode.minCardinality = undefined;
+        focusNode.maxCardinality = undefined;
+        minCardinality.prop('disabled', true);
+        maxCardinality.prop('disabled', true);
+      }
+
+      minCardinality.val(focusNode.minCardinality);
+      maxCardinality.val(focusNode.maxCardinality);
+
+      focusNode.allowedTaxon.forEach(function (e,i) {
+        listTaxonDom.append('<a onclick=removeAllowedTaxon('+i+') href="#" class="list-group-item list-group-item-action list-group-item-success">'+e+'<span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a>');
+      });
+
+      focusNode.forbiddenTaxon.forEach(function (e,i) {
+        listTaxonDom.append('<a onclick=removeForbiddenTaxon('+i+') href="#" class="list-group-item list-group-item-action list-group-item-danger">'+e+'<span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a>');
+      });
+
+    }
+
+    function focusOnNode (treeNode){
+      focusNode.focus = false;
+      focusNode = treeNode.data;
+      focusNode.focus = true;
+      updateDetails();
+      computeAndDraw();
+    }
+
+    function addAllowTaxonInFocus() {
+      addConstraintInNode(false);
+    }
+
+    function addForbidTaxonInFocus() {
+      addConstraintInNode(true);
+    }
+
+    function removeAllowedTaxon(i) {
+      focusNode.allowedTaxon.splice(i, 1);
+      updateDetails();
+      computeAndDraw();
+    }
+
+    function removeForbiddenTaxon(i) {
+      focusNode.forbiddenTaxon.splice(i, 1);
+      updateDetails();
+      computeAndDraw();
+    }
+
+    function addCardinalityMin() {
+      var val = $('#minCardinality').val();
+      val = Math.abs(parseInt(val));
+      if(focusNode.children){
+        focusNode.minCardinality = val;
+      }
+      computeAndDraw();
+    }
+
+    function addCardinalityMax() {
+      var val = $('#maxCardinality').val();
+      val = Math.abs(parseInt(val));
+      if(focusNode.children){
+        focusNode.maxCardinality = val;
+      }
+      computeAndDraw();
+    }
+
+    </script>
 
 </body></html>
