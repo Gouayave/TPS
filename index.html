@@ -65,6 +65,7 @@
             <div class="svg">
 
             </div>
+             <a href="#" class="btn btn-default disabled">Submit pattern</a>
           </div>
 
           <div class="col-xs-3" id="detail">
@@ -129,13 +130,25 @@
         </div>
         </div>
       </div>
+      <br>
+      <div class="container">
+        <div class="row show-grid">
+          <div class="col-xs-12">
+            <div class="jumbotron">
+              <p id="cypher">
 
-
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
       <footer class="footer">
         <p><a href="https://lbbe.univ-lyon1.fr/">LBBE</a> | <a href="http://ancestrome.univ-lyon1.fr/">ANCESTROME</a></p>
       </footer>
-
     </div> <!-- /container -->
+
+
+
 
 
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
@@ -144,597 +157,609 @@
     <script src="./node_modules/d3/build/d3.min.js" charset="utf-8"></script>
 
     <script type="text/javascript">
-    //View//
-    //Config
-    var width = 750,
-        height = 550,
-        margin = {
-          top : 0,
-          bottom : 120,
-          rigth : 0,
-          left : 40
-        },
-        depth = 100;
-
-        d3.symbolForbidden =  {
-          draw: function(context, size) {
-              var pi = Math.PI;
-              var r = Math.sqrt(size / pi);
-              context.arc(0, 0, r, 0, 2*pi);
-              context.moveTo(Math.cos((pi)/4) * r, - Math.sin((pi)/4) * r);
-              context.lineTo(Math.cos((5*pi)/4) * r, - Math.sin((5*pi)/4) * r);
-              context.closePath();
-              }
-           }
-
-         var symbolCircle = d3.symbol();
-         symbolCircle.size(512);
-         symbolCircle.type(d3.symbolCircle);
-
-         var symbolForbidden = d3.symbol();
-         symbolForbidden.size(512);
-         symbolForbidden.type(d3.symbolForbidden);
-
-
-      var events =
-      [
-          {
-            id : 0,
-            rights : "Allow",
-            name : "Any",
-            shape : symbolCircle,
-            stroke : "black",
-            fill : "white",
-            textfill : "black",
-            letter : ''
-          }
-      ,
-          {
-            id : 1,
-            rights : "Must",
-            name : "Duplication",
-            shape : symbolCircle,
-            stroke : "white",
-            fill : "#005c99",
-            textfill : "white",
-            letter : 'D'
-          }
-      ,
-          {
-            id : 2,
-            rights : "Forbidden",
-            name : "Duplication",
-            shape : symbolForbidden,
-            stroke : "red",
-            fill : "white",
-            textfill : "black",
-            letter : 'D'
-          }
-      ,
-          {
-            id : 3,
-            rights : "Must",
-            name : "Speciation",
-            shape : symbolCircle,
-            stroke : "white",
-            fill : "#005c99",
-            textfill : "white",
-            letter : 'S'
-          }
-      ,
-          {
-            id : 4,
-            rights : "Forbidden",
-            name : "Speciation",
-            shape : symbolForbidden,
-            stroke : "red",
-            fill : "white",
-            textfill : "black",
-            letter : 'S'
-          }
-      ]
-
-
-    //Instance element
-    var svg = d3.select(".svg")
-        .append("svg:svg")
-        .attr("width", width)
-        .attr("height", height)
-        .attr("pointer-events", "all")
-        .attr("cursor","pointer")
-        .append("svg:g")
-        .attr("transform","translate("+margin.left+","+margin.top+")");
-
-    var glinks =
-       svg.append("svg:g");
-
-    var gnodes =
-        svg.append("svg:g");
-
-    var gconstraints =
-        svg.append("svg:g");
-
-
-    //Data structures
-    var firstNode = {
-      nodeEvent : events[0],
-      linkEvent : events[0],
-      allowedTaxon : [],
-      forbiddenTaxon : []
-    };
-
-    var treePatternRoot = {
-      children : [firstNode]
-    };
-
-    var focusNode = firstNode;
-    focusNode.focus = true;
-    updateDetails();
-
-    //Instance and configure layout computer
-    var treeComputer =
-      d3.cluster()
-      .size([(height - margin.rigth -margin.left), (width - margin.top - margin.bottom)]);
-
-    function computeAndDraw() {
-
-      //Compute hierarchy and position
-      var nodeRootHierarchy = d3.hierarchy(treePatternRoot);
-      treeComputer(nodeRootHierarchy);
-
-
-      var allLinks = nodeRootHierarchy.links();
-      var allConstraints = allLinks.filter(function (d) {
-        return d.target.data.linkEvent.rights !== "Allow";
-      });
-
-      var allNodes = nodeRootHierarchy.children[0].descendants();
-
-      //Bind data with element (nodes and links)
-      var nodes = gnodes.selectAll(".node")
-        .data(allNodes);
-
-      var textDetails = gnodes.selectAll(".textDetails")
-        .data(allNodes);
-
-      var textCardinalies = gnodes.selectAll(".textCardinalies")
-        .data(allNodes);
-
-      var links = glinks.selectAll(".link")
-        .data(allLinks);
-
-      var constraints = gconstraints.selectAll(".constraint")
-        .data(allConstraints);
-
-
-      //LINKS
-      //EXIT
-      links.exit().remove();
-
-      //ENTER + UPDATE
-      links
-        .enter()
-        .append("path")
-        .classed("link",true)
-        .style("fill","none")
-        .style("stroke-width","8px")
-        .merge(links)
-        .style("stroke",function (d) {
-          var stroke = d.target.data.linkEvent.stroke;
-          var fill = d.target.data.linkEvent.fill;
-          if(stroke != "white"){
-            return stroke;
-          }
-          else if(fill != "white"){
-            return fill;
-          }else{
-            return "black";
-          }
-        })
-        .attr("d",function (d) {
-          var path = d3.path();
-          path.moveTo(d.source.y,d.source.x);
-          path.quadraticCurveTo(d.source.y , d.target.x, d.target.y, d.target.x)
-          return path.toString();
-        });
-
-      //Draw nodes
-      //EXIT
-      nodes.exit().remove();
-
-      //ENTER
-      var newNodesGroup =
-      nodes
-        .enter()
-        .append("g")
-        .classed("node",true);
-
-      newNodesGroup
-        .append("path")
-        .attr("class","shape");
-
-      newNodesGroup
-        .append("text")
-        .attr("class","textNode")
-        .style("text-anchor","middle")
-        .style("alignment-baseline","middle");
-
-      //ENTER + UPDATE
-      var nodesGroup =
-      newNodesGroup
-        .merge(nodes)
-        .attr("transform",function(d) {
-          var x = d.x;
-          var y = d.y;
-          return "translate("+y+","+x+")";
-        })
-        .on("click",function (d) {
-          focusOnNode(d);
-        });
-
-      nodesGroup
-        .select(".shape")
-        .attr("d",function (d) {
-          if(d.data.children){
-            return d.data.nodeEvent.shape();
-          }else{
-            return symbolCircle();
-          }
-
-        })
-        .style("stroke-width", function (d) {
-            if(d.data.focus){
-              return "5px"
-            }else{
-              return "2px"
-            }
-        })
-        .style("stroke",function (d) {
-          if(d.data.children){
-            return d.data.nodeEvent.stroke;
-          }else{
-            return "black";
-          }
-
-        })
-        .style("fill",function (d) {
-          if(d.data.children){
-            return d.data.nodeEvent.fill;
-          }
-          else{
-            return "white";
-          }
-        });
-
-      nodesGroup
-        .select(".textNode")
-        .style("fill",function (d) {
-          if(d.data.children){
-            return d.data.nodeEvent.textfill;
-          }
-          else{
-            return "black";
-          }
-        })
-        .text(function (d) {
-          if(d.data.children){
-            return d.data.nodeEvent.letter;
-          }
-          else{
-            return "L";
-          }
-        });
-
-
-      //EXIT
-      textDetails.exit().remove();
-
-      //ENTER
-      var newDetailsTextGroup =
-      textDetails
-        .enter()
-        .append("text")
-        .classed("textDetails",true)
-        .style("text-anchor","end");
-
-
-      //ENTER + UPDATE
-      var allDetailsTextGroup =
-      newDetailsTextGroup
-      .merge(textDetails)
-      .attr("transform",function(d) {
-        var x = d.x + 20;
-        var y = d.y ;
-        return "translate("+y+","+x+")";
-      });
-
-      allDetailsTextGroup.each(function (d) {
-
-        var allowedTaxons = d3.select(this)
-        .selectAll(".allowedTaxon")
-        .data(d.data.allowedTaxon);
-
-        allowedTaxons.exit().remove();
-
-        var forbiddenTaxons = d3.select(this)
-        .selectAll(".forbiddenTaxon")
-        .data(d.data.forbiddenTaxon);
-
-        forbiddenTaxons.exit().remove();
-
-        var enterAllowedTaxons=
-        allowedTaxons
-        .enter()
-        .append("tspan")
-        .attr("fill","green")
-        .attr("class","allowedTaxon");
-
-        enterAllowedTaxons
-        .merge(allowedTaxons)
-        .attr("dy",15)
-        .attr("x",0)
-        .text(function (e) {
-          return e;
-        });
-
-        var enterForbiddenTaxons=
-        forbiddenTaxons
-        .enter()
-        .append("tspan")
-        .attr("class","forbiddenTaxon")
-        .attr("fill","red")
-        .style("text-decoration","line-through")
-
-        enterForbiddenTaxons
-        .merge(forbiddenTaxons)
-        .attr("dy",15)
-        .attr("x",0)
-        .text(function (e) {
-          return e;
-        });
-
-      });
-
-
-      //EXIT
-      textCardinalies.exit().remove();
-
-      //ENTER
-      var newTextCardinalies =
-      textCardinalies
-        .enter()
-        .append("text")
-        .classed("textCardinalies",true)
-        .style("text-anchor","end");
-
-
-      //ENTER + UPDATE
-      var allTextCardinalies =
-      newTextCardinalies
-      .merge(textCardinalies)
-      .attr("transform",function(d) {
-        var x = d.x - 20;
-        var y = d.y - 5;
-        return "translate("+y+","+x+")";
-      })
-      .text(function (d) {
-        var text = "";
-        var minC = d.data.minCardinality;
-        var maxC = d.data.maxCardinality;
-        if(minC){
-          text += minC + " ≤ "
-        }
-        if(minC || maxC){
-          text += "n"
-        }
-        if(maxC){
-          text += " ≤ " + maxC
-        }
-        return text;
-      });
-
-
-
-
-
-      //EXIT
-      constraints.exit().remove();
-
-      //ENTER
-      var newConstraintsGroup =
-        constraints
-        .enter()
-        .append("g")
-        .classed("constraint",true);
-
-      newConstraintsGroup
-        .append("path")
-        .attr("class","pathCstGrp")
-        .style("stroke-width", "2px");
-
-      newConstraintsGroup
-        .append("text")
-        .attr("class","textCstGrp")
-        .style("text-anchor","middle")
-        .style("alignment-baseline","middle");
-
-
-      //ENTER + UPDATE
-      var constraintsGroup =
-        newConstraintsGroup
-        .merge(constraints)
-        .attr("transform",function(d) {
-          var x = d.target.x;
-          var y =(d.source.y) + (((d.target.y) - (d.source.y)) / 2 )
-          return "translate("+y+","+x+")";
-        });
-
-      constraintsGroup.select(".pathCstGrp")
-        .style("stroke",function (d) {
-          return d.target.data.linkEvent.stroke;
-        })
-        .style("fill",function (d) {
-          return d.target.data.linkEvent.fill;
-        })
-        .attr("d",function (d) {
-          return d.target.data.linkEvent.shape();
-        });
-
-      constraintsGroup.select(".textCstGrp")
-        .style("fill",function (d) {
-          return d.target.data.linkEvent.textfill;
-        })
-        .text(function (d) {
-          return d.target.data.linkEvent.letter;
-        });
-
-
-    }
-    computeAndDraw();
-
-    //Add child to treeNode
-    function addChildren () {
-      if(!focusNode.children){
-        focusNode.children = [
-          {
-            nodeEvent : events[0],
-            linkEvent : events[0],
-            allowedTaxon : [],
-            forbiddenTaxon : []
+      function createCypherRequest() {
+        
+      }
+    </script>
+
+    <script type="text/javascript">
+      //View//
+      //Config
+      var width = 750,
+          height = 550,
+          margin = {
+            top : 0,
+            bottom : 120,
+            rigth : 0,
+            left : 40
           },
-          {
-            nodeEvent : events[0],
-            linkEvent : events[0],
-            allowedTaxon : [],
-            forbiddenTaxon : []
-          }
-        ];
-      }
-      computeAndDraw();
-      updateDetails();
-    }
+          depth = 100;
 
-    //Add child to treeNode
-    function removeChildren () {
-      if(focusNode.children){
-        focusNode.children = undefined;
-      }
-      computeAndDraw();
-      updateDetails();
-    }
+          d3.symbolForbidden =  {
+            draw: function(context, size) {
+                var pi = Math.PI;
+                var r = Math.sqrt(size / pi);
+                context.arc(0, 0, r, 0, 2*pi);
+                context.moveTo(Math.cos((pi)/4) * r, - Math.sin((pi)/4) * r);
+                context.lineTo(Math.cos((5*pi)/4) * r, - Math.sin((5*pi)/4) * r);
+                context.closePath();
+                }
+             }
 
-    //Change node event
-    function changeEvent () {
-      if(focusNode.children){
-        var nodeEvent = focusNode.nodeEvent;
-        newIdEvent = (nodeEvent.id + 1) %  events.length;
-        focusNode.nodeEvent = events[newIdEvent];
-        computeAndDraw();
-      }
-    }
+           var symbolCircle = d3.symbol();
+           symbolCircle.size(512);
+           symbolCircle.type(d3.symbolCircle);
 
-    //Change node forbidden Event
-    function changeLinkEvent () {
-      var linkEvent = focusNode.linkEvent;
-      newIdEvent = (linkEvent.id + 1) %  events.length;
-      focusNode.linkEvent = events[newIdEvent];
-      computeAndDraw();
-    }
+           var symbolForbidden = d3.symbol();
+           symbolForbidden.size(512);
+           symbolForbidden.type(d3.symbolForbidden);
 
-    //Add constraint in node
-    function addConstraintInNode (forbidden) {
 
-      var taxon = $('#taxon').val();
-      if(taxon){
-        if(forbidden){
-          focusNode.forbiddenTaxon.push(taxon);
-        }else {
-          focusNode.allowedTaxon.push(taxon);
-        }
-        updateDetails();
-      }
-      var taxon = $('#taxon').val("");
-      computeAndDraw();
-    }
+        var events =
+        [
+            {
+              id : 0,
+              rights : "Allow",
+              name : "Any",
+              shape : symbolCircle,
+              stroke : "black",
+              fill : "white",
+              textfill : "black",
+              letter : ''
+            }
+        ,
+            {
+              id : 1,
+              rights : "Must",
+              name : "Duplication",
+              shape : symbolCircle,
+              stroke : "white",
+              fill : "#005c99",
+              textfill : "white",
+              letter : 'D'
+            }
+        ,
+            {
+              id : 2,
+              rights : "Forbidden",
+              name : "Duplication",
+              shape : symbolForbidden,
+              stroke : "red",
+              fill : "white",
+              textfill : "black",
+              letter : 'D'
+            }
+        ,
+            {
+              id : 3,
+              rights : "Must",
+              name : "Speciation",
+              shape : symbolCircle,
+              stroke : "white",
+              fill : "#005c99",
+              textfill : "white",
+              letter : 'S'
+            }
+        ,
+            {
+              id : 4,
+              rights : "Forbidden",
+              name : "Speciation",
+              shape : symbolForbidden,
+              stroke : "red",
+              fill : "white",
+              textfill : "black",
+              letter : 'S'
+            }
+        ]
 
-    function updateDetails () {
-      var listTaxonDom = $('#listTaxon');
-      var minCardinality = $('#minCardinality');
-      var maxCardinality = $('#maxCardinality');
 
-      listTaxonDom.empty();
-      minCardinality.val("");
-      maxCardinality.val("");
+      //Instance element
+      var svg = d3.select(".svg")
+          .append("svg:svg")
+          .attr("width", width)
+          .attr("height", height)
+          .attr("pointer-events", "all")
+          .attr("cursor","pointer")
+          .append("svg:g")
+          .attr("transform","translate("+margin.left+","+margin.top+")");
 
-      if(focusNode.children){
-        minCardinality.prop('disabled', false);
-        maxCardinality.prop('disabled', false);
-      }else{
-        focusNode.minCardinality = undefined;
-        focusNode.maxCardinality = undefined;
-        minCardinality.prop('disabled', true);
-        maxCardinality.prop('disabled', true);
-      }
+      var glinks =
+         svg.append("svg:g");
 
-      minCardinality.val(focusNode.minCardinality);
-      maxCardinality.val(focusNode.maxCardinality);
+      var gnodes =
+          svg.append("svg:g");
 
-      focusNode.allowedTaxon.forEach(function (e,i) {
-        listTaxonDom.append('<a onclick=removeAllowedTaxon('+i+') href="#" class="list-group-item list-group-item-action list-group-item-success">'+e+'<span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a>');
-      });
+      var gconstraints =
+          svg.append("svg:g");
 
-      focusNode.forbiddenTaxon.forEach(function (e,i) {
-        listTaxonDom.append('<a onclick=removeForbiddenTaxon('+i+') href="#" class="list-group-item list-group-item-action list-group-item-danger">'+e+'<span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a>');
-      });
 
-    }
+      //Data structures
+      var firstNode = {
+        nodeEvent : events[0],
+        linkEvent : events[0],
+        allowedTaxon : [],
+        forbiddenTaxon : []
+      };
 
-    function focusOnNode (treeNode){
-      focusNode.focus = false;
-      focusNode = treeNode.data;
+      var treePatternRoot = {
+        children : [firstNode]
+      };
+
+      var focusNode = firstNode;
       focusNode.focus = true;
       updateDetails();
-      computeAndDraw();
-    }
 
-    function addAllowTaxonInFocus() {
-      addConstraintInNode(false);
-    }
+      //Instance and configure layout computer
+      var treeComputer =
+        d3.cluster()
+        .size([(height - margin.rigth -margin.left), (width - margin.top - margin.bottom)]);
 
-    function addForbidTaxonInFocus() {
-      addConstraintInNode(true);
-    }
+      function computeAndDraw() {
 
-    function removeAllowedTaxon(i) {
-      focusNode.allowedTaxon.splice(i, 1);
-      updateDetails();
-      computeAndDraw();
-    }
+        //Compute hierarchy and position
+        var nodeRootHierarchy = d3.hierarchy(treePatternRoot);
+        treeComputer(nodeRootHierarchy);
 
-    function removeForbiddenTaxon(i) {
-      focusNode.forbiddenTaxon.splice(i, 1);
-      updateDetails();
-      computeAndDraw();
-    }
 
-    function addCardinalityMin() {
-      var val = $('#minCardinality').val();
-      val = Math.abs(parseInt(val));
-      if(focusNode.children){
-        focusNode.minCardinality = val;
+        var allLinks = nodeRootHierarchy.links();
+        var allConstraints = allLinks.filter(function (d) {
+          return d.target.data.linkEvent.rights !== "Allow";
+        });
+
+        var allNodes = nodeRootHierarchy.children[0].descendants();
+
+        //Bind data with element (nodes and links)
+        var nodes = gnodes.selectAll(".node")
+          .data(allNodes);
+
+        var textDetails = gnodes.selectAll(".textDetails")
+          .data(allNodes);
+
+        var textCardinalies = gnodes.selectAll(".textCardinalies")
+          .data(allNodes);
+
+        var links = glinks.selectAll(".link")
+          .data(allLinks);
+
+        var constraints = gconstraints.selectAll(".constraint")
+          .data(allConstraints);
+
+
+        //LINKS
+        //EXIT
+        links.exit().remove();
+
+        //ENTER + UPDATE
+        links
+          .enter()
+          .append("path")
+          .classed("link",true)
+          .style("fill","none")
+          .style("stroke-width","8px")
+          .merge(links)
+          .style("stroke",function (d) {
+            var stroke = d.target.data.linkEvent.stroke;
+            var fill = d.target.data.linkEvent.fill;
+            if(stroke != "white"){
+              return stroke;
+            }
+            else if(fill != "white"){
+              return fill;
+            }else{
+              return "black";
+            }
+          })
+          .attr("d",function (d) {
+            var path = d3.path();
+            path.moveTo(d.source.y,d.source.x);
+            path.quadraticCurveTo(d.source.y , d.target.x, d.target.y, d.target.x)
+            return path.toString();
+          });
+
+        //Draw nodes
+        //EXIT
+        nodes.exit().remove();
+
+        //ENTER
+        var newNodesGroup =
+        nodes
+          .enter()
+          .append("g")
+          .classed("node",true);
+
+        newNodesGroup
+          .append("path")
+          .attr("class","shape");
+
+        newNodesGroup
+          .append("text")
+          .attr("class","textNode")
+          .style("text-anchor","middle")
+          .style("alignment-baseline","middle");
+
+        //ENTER + UPDATE
+        var nodesGroup =
+        newNodesGroup
+          .merge(nodes)
+          .attr("transform",function(d) {
+            var x = d.x;
+            var y = d.y;
+            return "translate("+y+","+x+")";
+          })
+          .on("click",function (d) {
+            focusOnNode(d);
+          });
+
+        nodesGroup
+          .select(".shape")
+          .attr("d",function (d) {
+            if(d.data.children){
+              return d.data.nodeEvent.shape();
+            }else{
+              return symbolCircle();
+            }
+
+          })
+          .style("stroke-width", function (d) {
+              if(d.data.focus){
+                return "5px"
+              }else{
+                return "2px"
+              }
+          })
+          .style("stroke",function (d) {
+            if(d.data.children){
+              return d.data.nodeEvent.stroke;
+            }else{
+              return "black";
+            }
+
+          })
+          .style("fill",function (d) {
+            if(d.data.children){
+              return d.data.nodeEvent.fill;
+            }
+            else{
+              return "white";
+            }
+          });
+
+        nodesGroup
+          .select(".textNode")
+          .style("fill",function (d) {
+            if(d.data.children){
+              return d.data.nodeEvent.textfill;
+            }
+            else{
+              return "black";
+            }
+          })
+          .text(function (d) {
+            if(d.data.children){
+              return d.data.nodeEvent.letter;
+            }
+            else{
+              return "L";
+            }
+          });
+
+
+        //EXIT
+        textDetails.exit().remove();
+
+        //ENTER
+        var newDetailsTextGroup =
+        textDetails
+          .enter()
+          .append("text")
+          .classed("textDetails",true)
+          .style("text-anchor","end");
+
+
+        //ENTER + UPDATE
+        var allDetailsTextGroup =
+        newDetailsTextGroup
+        .merge(textDetails)
+        .attr("transform",function(d) {
+          var x = d.x + 20;
+          var y = d.y ;
+          return "translate("+y+","+x+")";
+        });
+
+        allDetailsTextGroup.each(function (d) {
+
+          var allowedTaxons = d3.select(this)
+          .selectAll(".allowedTaxon")
+          .data(d.data.allowedTaxon);
+
+          allowedTaxons.exit().remove();
+
+          var forbiddenTaxons = d3.select(this)
+          .selectAll(".forbiddenTaxon")
+          .data(d.data.forbiddenTaxon);
+
+          forbiddenTaxons.exit().remove();
+
+          var enterAllowedTaxons=
+          allowedTaxons
+          .enter()
+          .append("tspan")
+          .attr("fill","green")
+          .attr("class","allowedTaxon");
+
+          enterAllowedTaxons
+          .merge(allowedTaxons)
+          .attr("dy",15)
+          .attr("x",0)
+          .text(function (e) {
+            return e;
+          });
+
+          var enterForbiddenTaxons=
+          forbiddenTaxons
+          .enter()
+          .append("tspan")
+          .attr("class","forbiddenTaxon")
+          .attr("fill","red")
+          .style("text-decoration","line-through")
+
+          enterForbiddenTaxons
+          .merge(forbiddenTaxons)
+          .attr("dy",15)
+          .attr("x",0)
+          .text(function (e) {
+            return e;
+          });
+
+        });
+
+
+        //EXIT
+        textCardinalies.exit().remove();
+
+        //ENTER
+        var newTextCardinalies =
+        textCardinalies
+          .enter()
+          .append("text")
+          .classed("textCardinalies",true)
+          .style("text-anchor","end");
+
+
+        //ENTER + UPDATE
+        var allTextCardinalies =
+        newTextCardinalies
+        .merge(textCardinalies)
+        .attr("transform",function(d) {
+          var x = d.x - 20;
+          var y = d.y - 5;
+          return "translate("+y+","+x+")";
+        })
+        .text(function (d) {
+          var text = "";
+          var minC = d.data.minCardinality;
+          var maxC = d.data.maxCardinality;
+          if(minC){
+            text += minC + " ≤ "
+          }
+          if(minC || maxC){
+            text += "n"
+          }
+          if(maxC){
+            text += " ≤ " + maxC
+          }
+          return text;
+        });
+
+
+
+
+
+        //EXIT
+        constraints.exit().remove();
+
+        //ENTER
+        var newConstraintsGroup =
+          constraints
+          .enter()
+          .append("g")
+          .classed("constraint",true);
+
+        newConstraintsGroup
+          .append("path")
+          .attr("class","pathCstGrp")
+          .style("stroke-width", "2px");
+
+        newConstraintsGroup
+          .append("text")
+          .attr("class","textCstGrp")
+          .style("text-anchor","middle")
+          .style("alignment-baseline","middle");
+
+
+        //ENTER + UPDATE
+        var constraintsGroup =
+          newConstraintsGroup
+          .merge(constraints)
+          .attr("transform",function(d) {
+            var x = d.target.x;
+            var y =(d.source.y) + (((d.target.y) - (d.source.y)) / 2 )
+            return "translate("+y+","+x+")";
+          });
+
+        constraintsGroup.select(".pathCstGrp")
+          .style("stroke",function (d) {
+            return d.target.data.linkEvent.stroke;
+          })
+          .style("fill",function (d) {
+            return d.target.data.linkEvent.fill;
+          })
+          .attr("d",function (d) {
+            return d.target.data.linkEvent.shape();
+          });
+
+        constraintsGroup.select(".textCstGrp")
+          .style("fill",function (d) {
+            return d.target.data.linkEvent.textfill;
+          })
+          .text(function (d) {
+            return d.target.data.linkEvent.letter;
+          });
+
+        updateCypher();
       }
       computeAndDraw();
-    }
 
-    function addCardinalityMax() {
-      var val = $('#maxCardinality').val();
-      val = Math.abs(parseInt(val));
-      if(focusNode.children){
-        focusNode.maxCardinality = val;
+      //Add child to treeNode
+      function addChildren () {
+        if(!focusNode.children){
+          focusNode.children = [
+            {
+              nodeEvent : events[0],
+              linkEvent : events[0],
+              allowedTaxon : [],
+              forbiddenTaxon : []
+            },
+            {
+              nodeEvent : events[0],
+              linkEvent : events[0],
+              allowedTaxon : [],
+              forbiddenTaxon : []
+            }
+          ];
+        }
+        computeAndDraw();
+        updateDetails();
       }
-      computeAndDraw();
-    }
+
+      //Add child to treeNode
+      function removeChildren () {
+        if(focusNode.children){
+          focusNode.nodeEvent = events[0];
+          focusNode.children = undefined;
+        }
+        computeAndDraw();
+        updateDetails();
+      }
+
+      //Change node event
+      function changeEvent () {
+        if(focusNode.children){
+          var nodeEvent = focusNode.nodeEvent;
+          newIdEvent = (nodeEvent.id + 1) %  events.length;
+          focusNode.nodeEvent = events[newIdEvent];
+          computeAndDraw();
+        }
+      }
+
+      //Change node forbidden Event
+      function changeLinkEvent () {
+        var linkEvent = focusNode.linkEvent;
+        newIdEvent = (linkEvent.id + 1) %  events.length;
+        focusNode.linkEvent = events[newIdEvent];
+        computeAndDraw();
+      }
+
+      //Add constraint in node
+      function addConstraintInNode (forbidden) {
+
+        var taxon = $('#taxon').val();
+        if(taxon){
+          if(forbidden){
+            focusNode.forbiddenTaxon.push(taxon);
+          }else {
+            focusNode.allowedTaxon.push(taxon);
+          }
+          updateDetails();
+        }
+        var taxon = $('#taxon').val("");
+        computeAndDraw();
+      }
+
+      function updateDetails () {
+        var listTaxonDom = $('#listTaxon');
+        var minCardinality = $('#minCardinality');
+        var maxCardinality = $('#maxCardinality');
+
+        listTaxonDom.empty();
+        minCardinality.val("");
+        maxCardinality.val("");
+
+        if(focusNode.children){
+          minCardinality.prop('disabled', false);
+          maxCardinality.prop('disabled', false);
+        }else{
+          focusNode.minCardinality = undefined;
+          focusNode.maxCardinality = undefined;
+          minCardinality.prop('disabled', true);
+          maxCardinality.prop('disabled', true);
+        }
+
+        minCardinality.val(focusNode.minCardinality);
+        maxCardinality.val(focusNode.maxCardinality);
+
+        focusNode.allowedTaxon.forEach(function (e,i) {
+          listTaxonDom.append('<a onclick=removeAllowedTaxon('+i+') href="#" class="list-group-item list-group-item-action list-group-item-success">'+e+'<span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a>');
+        });
+
+        focusNode.forbiddenTaxon.forEach(function (e,i) {
+          listTaxonDom.append('<a onclick=removeForbiddenTaxon('+i+') href="#" class="list-group-item list-group-item-action list-group-item-danger">'+e+'<span class="glyphicon glyphicon-remove" aria-hidden="true"></span></a>');
+        });
+
+      }
+
+      function focusOnNode (treeNode){
+        focusNode.focus = false;
+        focusNode = treeNode.data;
+        focusNode.focus = true;
+        updateDetails();
+        computeAndDraw();
+      }
+
+      function addAllowTaxonInFocus() {
+        addConstraintInNode(false);
+      }
+
+      function addForbidTaxonInFocus() {
+        addConstraintInNode(true);
+      }
+
+      function removeAllowedTaxon(i) {
+        focusNode.allowedTaxon.splice(i, 1);
+        updateDetails();
+        computeAndDraw();
+      }
+
+      function removeForbiddenTaxon(i) {
+        focusNode.forbiddenTaxon.splice(i, 1);
+        updateDetails();
+        computeAndDraw();
+      }
+
+      function addCardinalityMin() {
+        var val = $('#minCardinality').val();
+        val = Math.abs(parseInt(val));
+        if(focusNode.children){
+          focusNode.minCardinality = val;
+        }
+        computeAndDraw();
+      }
+
+      function addCardinalityMax() {
+        var val = $('#maxCardinality').val();
+        val = Math.abs(parseInt(val));
+        if(focusNode.children){
+          focusNode.maxCardinality = val;
+        }
+        computeAndDraw();
+      }
+
+      function updateCypher() {
+        $('#cypher').html(JSON.stringify(firstNode,null,1));
+      }
 
     </script>
 
-</body></html>
+  </body>
+</html>
